@@ -1,33 +1,23 @@
-# GX Exchange — Smart Contracts
+# GX Exchange Smart Contracts
 
-On-chain smart contracts for the GX Exchange platform on Arbitrum.
+On-chain smart contracts powering the GX Exchange platform's bridge and token infrastructure on Arbitrum.
 
 ## Contracts
 
 | Contract | Description |
 |---|---|
-| `GXVault.sol` | Deposit/withdrawal vault on Arbitrum — handles USDC bridging, fee collection, and vault management |
-| `GXStablecoin.sol` | GX stablecoin contract |
-| `GXToken.sol` | GX Token (ERC-20) — 1B supply, burnable, permit-enabled |
+| GXVault.sol | Deposit and withdrawal vault on Arbitrum — handles USDC bridging, fee collection, and vault management |
+| GXStablecoin.sol | GX stablecoin contract |
+| GXToken.sol | GX Token (ERC-20) — 1 billion fixed supply, burnable, permit-enabled |
 
-## Reference
+## Overview
 
-`reference/hyperliquid-bridge/` — Hyperliquid's Bridge2.sol and Signature.sol for reference (originally forked, Apache 2.0 / MIT licensed).
+These contracts form the bridge layer between Arbitrum and GX Chain, enabling users to deposit and withdraw assets securely. The vault contract manages USDC custody with multi-validator quorum verification and timelock protections.
 
-## Setup
+## Requirements
 
-```bash
-npm install
-cp .env.example .env  # add your private key + RPC URLs
-npx hardhat compile
-npx hardhat test
-```
-
-## Deploy
-
-```bash
-npx hardhat run scripts/deploy-vault.ts --network arbitrum
-```
+- Node.js 18+
+- Hardhat
 
 ## License
 
