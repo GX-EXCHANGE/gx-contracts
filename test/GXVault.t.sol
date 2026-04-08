@@ -148,8 +148,8 @@ contract GXVaultTest is Test {
 
         // Approve tokens
         vm.startPrank(owner);
-        vault.addToken(address(usdc));
-        vault.addToken(address(usdt));
+        vault.addToken(address(usdc), 1e6);
+        vault.addToken(address(usdt), 1e6);
         vm.stopPrank();
 
         // Fund user1 and approve vault
@@ -205,7 +205,7 @@ contract GXVaultTest is Test {
 
     function test_deposit_emits_event() public {
         vm.expectEmit(true, true, false, true);
-        emit GXVault.Deposited(address(usdc), user1, DEPOSIT_AMT);
+        emit GXVault.Deposited(user1, address(usdc), DEPOSIT_AMT, block.timestamp);
 
         vm.prank(user1);
         vault.deposit(address(usdc), DEPOSIT_AMT);
@@ -415,7 +415,7 @@ contract GXVaultTest is Test {
         GXVault vault3 = new GXVault(threeGuardians, 3, MAX_DEPOSITS);
 
         vm.prank(owner);
-        vault3.addToken(address(usdc));
+        vault3.addToken(address(usdc), 1e6);
 
         usdc.mint(user1, DEPOSIT_AMT);
         vm.prank(user1);
@@ -590,7 +590,7 @@ contract GXVaultTest is Test {
 
         vm.expectRevert(GXVault.NotOwner.selector);
         vm.prank(user1);
-        vault.addToken(address(0xF00D));
+        vault.addToken(address(0xF00D), 1e6);
 
         vm.expectRevert(GXVault.NotOwner.selector);
         vm.prank(user1);
@@ -811,7 +811,7 @@ contract GXVaultTest is Test {
         // Deploy a token that always reverts on transferFrom
         RevertingToken rvrt = new RevertingToken();
         vm.prank(owner);
-        vault.addToken(address(rvrt));
+        vault.addToken(address(rvrt), 1e6);
 
         rvrt.mint(user1, DEPOSIT_AMT);
         vm.prank(user1);
@@ -841,7 +841,7 @@ contract GXVaultTest is Test {
 
         // Expect Deposited event with exact args
         vm.expectEmit(true, true, false, true);
-        emit GXVault.Deposited(address(usdc), user1, DEPOSIT_AMT);
+        emit GXVault.Deposited(user1, address(usdc), DEPOSIT_AMT, block.timestamp);
 
         vm.prank(user1);
         vault.deposit(address(usdc), DEPOSIT_AMT);
@@ -991,7 +991,7 @@ contract GXVaultTest is Test {
     function test_add_token_zero_address_reverts() public {
         vm.expectRevert(GXVault.InvalidAddress.selector);
         vm.prank(owner);
-        vault.addToken(address(0));
+        vault.addToken(address(0), 1e6);
     }
 
     function test_constructor_too_many_guardians_reverts() public {

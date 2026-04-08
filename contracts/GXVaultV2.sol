@@ -37,8 +37,11 @@ contract GXVaultV2 is ReentrancyGuard, Pausable {
     //  CONSTANTS
     // ══════════════════════════════════════════════════════════════════
 
-    /// @notice Minimum deposit: 1 USDC (6 decimals)
-    uint256 public constant MIN_DEPOSIT = 1e6;
+    // ── Arbitrum Mainnet Token Addresses ──────────────────────────────
+    address public constant USDC = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;  // Arbitrum native USDC (6 decimals)
+    address public constant USDT = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;  // Arbitrum USDT (6 decimals)
+    address public constant WBTC = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f;  // Arbitrum WBTC (8 decimals)
+    address public constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;  // Arbitrum WETH (18 decimals)
 
     /// @notice Standard withdrawal delay for small amounts
     uint256 public constant WITHDRAWAL_DELAY = 1 hours;
@@ -104,6 +107,12 @@ contract GXVaultV2 is ReentrancyGuard, Pausable {
     /// @notice Approved ERC-20 tokens for deposits
     mapping(address => bool) public approvedTokens;
 
+    /// @notice Minimum deposit amount per token
+    mapping(address => uint256) public minDeposit;
+
+    /// @notice Operator addresses for direct withdrawals
+    mapping(address => bool) public operators;
+
     /// @notice User balances: token => user => amount
     mapping(address => mapping(address => uint256)) public balances;
 
@@ -164,12 +173,13 @@ contract GXVaultV2 is ReentrancyGuard, Pausable {
     error InvalidWithdrawalStatus();
     error BatchTooLarge();
     error InvalidNonce();
+    error NotOperator();
 
     // ══════════════════════════════════════════════════════════════════
     //  EVENTS
     // ══════════════════════════════════════════════════════════════════
 
-    event Deposited(address indexed token, address indexed user, uint256 amount);
+    event Deposited(address indexed user, address indexed token, uint256 amount, uint256 timestamp);
 
     event WithdrawalRequested(
         bytes32 indexed withdrawalId,
@@ -203,6 +213,10 @@ contract GXVaultV2 is ReentrancyGuard, Pausable {
     event TokenApproved(address indexed token);
     event TokenRemoved(address indexed token);
     event OwnerTransferred(address indexed oldOwner, address indexed newOwner);
+    event OperatorAdded(address indexed operator);
+    event OperatorRemoved(address indexed operator);
+    event OperatorWithdrawal(address indexed token, address indexed to, uint256 amount, uint256 timestamp);
+    event MinDepositUpdated(address indexed token, uint256 minAmount);
 
     // ══════════════════════════════════════════════════════════════════
     //  MODIFIERS
@@ -210,6 +224,11 @@ contract GXVaultV2 is ReentrancyGuard, Pausable {
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
+        _;
+    }
+
+    modifier onlyOperator() {
+        if (!operators[msg.sender]) revert NotOperator();
         _;
     }
 
@@ -244,6 +263,12 @@ contract GXVaultV2 is ReentrancyGuard, Pausable {
                 address(this)
             )
         );
+
+        // Initialize default approved tokens and minimum deposits
+        _initToken(USDC, 1e6);       // 1 USDC (6 decimals)
+        _initToken(USDT, 1e6);       // 1 USDT (6 decimals)
+        _initToken(WBTC, 10000);     // 0.0001 WBTC (8 decimals)
+        _initToken(WETH, 1e15);      // 0.001 WETH (18 decimals)
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -258,7 +283,7 @@ contract GXVaultV2 is ReentrancyGuard, Pausable {
      */
     function deposit(address token, uint256 amount) external nonReentrant whenNotPaused {
         if (!approvedTokens[token]) revert TokenNotApproved();
-        if (amount < MIN_DEPOSIT) revert BelowMinimumDeposit();
+        if (amount < minDeposit[token]) revert BelowMinimumDeposit();
         if (totalDeposited + amount > maxTotalDeposits) revert DepositCapExceeded();
 
         // Effects
@@ -266,10 +291,35 @@ contract GXVaultV2 is ReentrancyGuard, Pausable {
         totalDeposited += amount;
 
         // FIX-9: Event after state changes
-        emit Deposited(token, msg.sender, amount);
+        emit Deposited(msg.sender, token, amount, block.timestamp);
 
         // Interaction (last) -- FIX-6
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  OPERATOR WITHDRAWALS (direct, no multi-sig)
+    // ══════════════════════════════════════════════════════════════════
+
+    /**
+     * @notice Withdraw a specific token to a user. Operator-only for exchange operations.
+     * @dev FIX-6: Uses safeTransfer. FIX-9: Event before external call.
+     * @param token The ERC-20 token address to withdraw
+     * @param to Recipient address
+     * @param amount Amount in token's atomic units
+     */
+    function withdraw(address token, address to, uint256 amount) external nonReentrant whenNotPaused onlyOperator {
+        if (to == address(0)) revert InvalidAddress();
+        if (!approvedTokens[token]) revert TokenNotApproved();
+
+        uint256 vaultBalance = IERC20(token).balanceOf(address(this));
+        if (vaultBalance < amount) revert InsufficientBalance();
+
+        // FIX-9: Event after state changes, before external call
+        emit OperatorWithdrawal(token, to, amount, block.timestamp);
+
+        // Interaction (last) -- FIX-6: SafeERC20
+        IERC20(token).safeTransfer(to, amount);
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -579,15 +629,33 @@ contract GXVaultV2 is ReentrancyGuard, Pausable {
     //  ADMIN (owner-only for non-critical ops)
     // ══════════════════════════════════════════════════════════════════
 
-    function addToken(address token) external onlyOwner {
+    function addToken(address token, uint256 _minDeposit) external onlyOwner {
         if (token == address(0)) revert InvalidAddress();
         approvedTokens[token] = true;
+        minDeposit[token] = _minDeposit;
         emit TokenApproved(token);
+        emit MinDepositUpdated(token, _minDeposit);
     }
 
     function removeToken(address token) external onlyOwner {
         approvedTokens[token] = false;
         emit TokenRemoved(token);
+    }
+
+    function setMinDeposit(address token, uint256 _minDeposit) external onlyOwner {
+        minDeposit[token] = _minDeposit;
+        emit MinDepositUpdated(token, _minDeposit);
+    }
+
+    function addOperator(address operator) external onlyOwner {
+        if (operator == address(0)) revert InvalidAddress();
+        operators[operator] = true;
+        emit OperatorAdded(operator);
+    }
+
+    function removeOperator(address operator) external onlyOwner {
+        operators[operator] = false;
+        emit OperatorRemoved(operator);
     }
 
     function setMaxTotalDeposits(uint256 _maxTotalDeposits) external onlyOwner {
@@ -664,6 +732,14 @@ contract GXVaultV2 is ReentrancyGuard, Pausable {
             if (signer <= lastSigner) revert DuplicateSignature();
             lastSigner = signer;
         }
+    }
+
+    /**
+     * @dev Initialize an approved token with its minimum deposit.
+     */
+    function _initToken(address token, uint256 _minDeposit) internal {
+        approvedTokens[token] = true;
+        minDeposit[token] = _minDeposit;
     }
 
     /**
