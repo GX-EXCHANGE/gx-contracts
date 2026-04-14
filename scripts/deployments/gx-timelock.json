@@ -1,0 +1,15 @@
+{
+  "contract": "GXTimelock",
+  "address": "0xE6f08494a7acD6b53200CC10f087703eEe2F86Ac",
+  "txHash": "0x9bbd482354ecfea534d1af23cf6fcc64d60afa3507c3c59329f678941dff1afc",
+  "minDelay": "48 hours (172800 seconds)",
+  "proposers": [
+    "0xC257839de2c99150Dd5A4d6A2d94Db8d4bE76D2d"
+  ],
+  "executors": [
+    "anyone"
+  ],
+  "network": "arbitrumOne",
+  "deployedAt": "2026-04-14T21:28:44.026Z",
+  "arbiscan": "https://arbiscan.io/address/0xE6f08494a7acD6b53200CC10f087703eEe2F86Ac"
+}

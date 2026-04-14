@@ -1,0 +1,13 @@
+{
+  "contract": "GXBotSubscription",
+  "address": "0x243eA26adcAf1E4C53E224139EC5D40F6784A736",
+  "txHash": "0xa54fc88939aa8992e3c5608ba72be6f6f564d0c61df93298553855143ddb5fc3",
+  "deployer": "0x7856895b26b3E8Bc6ACc82119fBAC370f41FBa6F",
+  "gxToken": "0xA57744C4b421c392eBFeC4fe3332669FEF3Cbf5F",
+  "treasury": "0x678E4d4906883A6694fdFE35ebd8211A508ffD68",
+  "network": "arbitrumOne",
+  "chainId": "42161",
+  "deployedAt": "2026-04-14T21:27:00.506Z",
+  "arbiscanAddress": "https://arbiscan.io/address/0x243eA26adcAf1E4C53E224139EC5D40F6784A736",
+  "arbiscanTx": "https://arbiscan.io/tx/0xa54fc88939aa8992e3c5608ba72be6f6f564d0c61df93298553855143ddb5fc3"
+}

@@ -1,0 +1,17 @@
+{
+  "contract": "GXStaking",
+  "address": "0x8e06c52025b588759F0da8882bd2b087e1616517",
+  "txHash": "0x4fcacac5e090d3f1d2d84cac3112767a4bb95a36501d1c78d998beb99ce5271e",
+  "deployer": "0x7856895b26b3E8Bc6ACc82119fBAC370f41FBa6F",
+  "owner": "0x7856895b26b3E8Bc6ACc82119fBAC370f41FBa6F",
+  "rewardsDistributor": "0x7856895b26b3E8Bc6ACc82119fBAC370f41FBa6F",
+  "rewardsDistributorNote": "Temporary — deployer until FeeDistributor is deployed",
+  "stakingToken": "0xA57744C4b421c392eBFeC4fe3332669FEF3Cbf5F",
+  "rewardTokenA": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+  "rewardTokenB": "0xA57744C4b421c392eBFeC4fe3332669FEF3Cbf5F",
+  "network": "arbitrumOne",
+  "chainId": "42161",
+  "deployedAt": "2026-04-14T21:27:30.226Z",
+  "arbiscanAddress": "https://arbiscan.io/address/0x8e06c52025b588759F0da8882bd2b087e1616517",
+  "arbiscanTx": "https://arbiscan.io/tx/0x4fcacac5e090d3f1d2d84cac3112767a4bb95a36501d1c78d998beb99ce5271e"
+}

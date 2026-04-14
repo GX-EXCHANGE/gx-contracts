@@ -1,0 +1,20 @@
+{
+  "contract": "GXVesting",
+  "address": "0x28595eb7b37cD2bdbE4E1B3721fEa9c37889887f",
+  "txHash": "0xb3073c70e473c72b4bfeb0dde5a70a2b110076092a1fdd9da2e429d2dc470412",
+  "transferTxHash": "0x5782071b679b81c3a80700415c30db471b2a4e20b56987170f0c660620018040",
+  "deployer": "0x7856895b26b3E8Bc6ACc82119fBAC370f41FBa6F",
+  "beneficiary": "0xb5cc3d6d4aAb012ea38291544d85154b760B98f0",
+  "tokenAddress": "0xA57744C4b421c392eBFeC4fe3332669FEF3Cbf5F",
+  "totalAllocation": "50000000000000000000000000",
+  "totalAllocationHuman": "50,000,000 GX",
+  "cliffDuration": "31536000",
+  "vestingDuration": "94608000",
+  "cliffEndDate": "2027-04-14T17:07:48.000Z",
+  "vestingEndDate": "2029-04-13T17:07:48.000Z",
+  "network": "arbitrumOne",
+  "chainId": "42161",
+  "deployedAt": "2026-04-14T17:07:54.382Z",
+  "arbiscanAddress": "https://arbiscan.io/address/0x28595eb7b37cD2bdbE4E1B3721fEa9c37889887f",
+  "arbiscanTx": "https://arbiscan.io/tx/0xb3073c70e473c72b4bfeb0dde5a70a2b110076092a1fdd9da2e429d2dc470412"
+}

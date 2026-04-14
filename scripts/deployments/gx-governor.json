@@ -1,0 +1,14 @@
+{
+  "contract": "GXGovernor",
+  "address": "0xC257839de2c99150Dd5A4d6A2d94Db8d4bE76D2d",
+  "txHash": "0x8d6f07f24a7541ee7a75c9fb6b44c8e0ccc2f74b9a2114400a81aea69838b312",
+  "votingToken": "0x117BF25Ba355417c99179ab2e65767e9620ABdc1",
+  "timelock": "0xE6f08494a7acD6b53200CC10f087703eEe2F86Ac",
+  "proposalThreshold": "10,000 GX in veGX",
+  "quorum": "1% of total veGX supply",
+  "votingDelay": "1 day (7200 blocks)",
+  "votingPeriod": "5 days (36000 blocks)",
+  "network": "arbitrumOne",
+  "deployedAt": "2026-04-14T21:28:44.026Z",
+  "arbiscan": "https://arbiscan.io/address/0xC257839de2c99150Dd5A4d6A2d94Db8d4bE76D2d"
+}

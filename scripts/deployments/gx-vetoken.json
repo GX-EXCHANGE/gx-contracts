@@ -1,0 +1,11 @@
+{
+  "contract": "GXveToken",
+  "address": "0x117BF25Ba355417c99179ab2e65767e9620ABdc1",
+  "txHash": "0xc90f0d468b8760d2e86c9e6325a90dff9e496823b10806ae049401e9eebb4f74",
+  "gxToken": "0xA57744C4b421c392eBFeC4fe3332669FEF3Cbf5F",
+  "minLock": "7 days",
+  "maxLock": "4 years",
+  "network": "arbitrumOne",
+  "deployedAt": "2026-04-14T21:28:44.025Z",
+  "arbiscan": "https://arbiscan.io/address/0x117BF25Ba355417c99179ab2e65767e9620ABdc1"
+}

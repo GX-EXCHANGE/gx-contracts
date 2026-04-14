@@ -1,0 +1,36 @@
+{
+  "contract": "GXToken",
+  "name": "GX Exchange",
+  "symbol": "GX",
+  "totalSupply": "1,000,000,000",
+  "address": "0xA57744C4b421c392eBFeC4fe3332669FEF3Cbf5F",
+  "txHash": "0x4581b1afd3f58856a195795ce17acd62c4e481abed6e87fcd94e24f7ae0af944",
+  "deployer": "0x7856895b26b3E8Bc6ACc82119fBAC370f41FBa6F",
+  "network": "arbitrumOne",
+  "chainId": "42161",
+  "deployedAt": "2026-04-14T17:07:33.271Z",
+  "arbiscanToken": "https://arbiscan.io/token/0xA57744C4b421c392eBFeC4fe3332669FEF3Cbf5F",
+  "distributions": {
+    "emissions": {
+      "wallet": "0x99E5bBdcAC2CFC866C3D1Bb42fA89e510d2ffc53",
+      "amount": "388,900,000"
+    },
+    "marketing": {
+      "wallet": "0x57EA32c5bAb87Afda5475a98895743294CcFb6ce",
+      "amount": "188,000,000"
+    },
+    "airdrop": {
+      "wallet": "0xD44E1a1ADe0dAEC388B3Cc58f7395738ea2128C2",
+      "amount": "150,000,000"
+    },
+    "foundation": {
+      "wallet": "0x678E4d4906883A6694fdFE35ebd8211A508ffD68",
+      "amount": "60,000,000"
+    },
+    "grants": {
+      "wallet": "0xF7f17091a8fb4c3BdFbAe35Ea8B4d32D67E04a5c",
+      "amount": "3,000,000"
+    },
+    "deployer_remaining": "210,100,000 (Founder 50M + Fair Launch 160M + AutoLiq 100K)"
+  }
+}

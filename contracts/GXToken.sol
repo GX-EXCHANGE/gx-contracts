@@ -8,8 +8,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract GXToken is ERC20, ERC20Burnable, ERC20Permit, Ownable {
     constructor()
-        ERC20("GX Token", "GX")
-        ERC20Permit("GX Token")
+        ERC20("GX Exchange", "GX")
+        ERC20Permit("GX Exchange")
         Ownable(msg.sender)
     {
         _mint(msg.sender, 1_000_000_000 * 10 ** 18);
