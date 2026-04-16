@@ -1,0 +1,23 @@
+{
+  "contract": "GXFeeDistributor",
+  "address": "0x2129e21C71055DACE8740310CD8437b1Fe2Eafb0",
+  "txHash": "0x77d0328f5fbcd22de0aad2683f48b9a46b1cbcf738e72ad87e71c9507053e416",
+  "deployer": "0x7856895b26b3E8Bc6ACc82119fBAC370f41FBa6F",
+  "network": "arbitrumOne",
+  "chainId": "42161",
+  "deployedAt": "2026-04-16T16:57:45.746Z",
+  "arbiscan": "https://arbiscan.io/address/0x2129e21C71055DACE8740310CD8437b1Fe2Eafb0",
+  "split": {
+    "stakers": "40%",
+    "burnReserve": "20%",
+    "insurance": "20%",
+    "treasury": "20%"
+  },
+  "args": {
+    "feeToken": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    "stakingContract": "0x8e06c52025b588759F0da8882bd2b087e1616517",
+    "burnReserve": "0xfFa49362f3668aB3f23431641441932be20C62c7",
+    "insuranceFund": "0xA9EB8eb6A9F31BA470d84451B732A79A124bFb13",
+    "treasury": "0x678E4d4906883A6694fdFE35ebd8211A508ffD68"
+  }
+}

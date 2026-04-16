@@ -37,8 +37,8 @@ contract GXFeeDistributor is ReentrancyGuard {
     /// @notice Epoch length — distributions happen at most once per week.
     uint256 public constant EPOCH_DURATION = 1 weeks;
 
-    /// @notice Canonical burn address (tokens sent here are irrecoverable).
-    address public constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+    /// @notice Burn Reserve wallet — accumulates USDC for quarterly manual GX buy & burn.
+    address public immutable burnReserve;
 
     /* ======================================================================
        IMMUTABLE STATE (set once in constructor)
@@ -114,16 +114,19 @@ contract GXFeeDistributor is ReentrancyGuard {
     constructor(
         address _feeToken,
         address _stakingContract,
+        address _burnReserve,
         address _insuranceFund,
         address _treasury
     ) {
         if (_feeToken == address(0)) revert ZeroAddress();
         if (_stakingContract == address(0)) revert ZeroAddress();
+        if (_burnReserve == address(0)) revert ZeroAddress();
         if (_insuranceFund == address(0)) revert ZeroAddress();
         if (_treasury == address(0)) revert ZeroAddress();
 
         feeToken = IERC20(_feeToken);
         stakingContract = _stakingContract;
+        burnReserve = _burnReserve;
         insuranceFund = _insuranceFund;
         treasury = _treasury;
 
@@ -238,7 +241,7 @@ contract GXFeeDistributor is ReentrancyGuard {
 
         // Execute transfers
         feeToken.safeTransfer(stakingContract, toStakers);
-        feeToken.safeTransfer(BURN_ADDRESS, toBurn);
+        feeToken.safeTransfer(burnReserve, toBurn);
         feeToken.safeTransfer(insuranceFund, toInsurance);
         feeToken.safeTransfer(treasury, toTreasury);
 
@@ -271,7 +274,7 @@ contract GXFeeDistributor is ReentrancyGuard {
                 lastCheckpointBalance -= amount;
 
                 feeToken.safeTransfer(stakingContract, toStakers);
-                feeToken.safeTransfer(BURN_ADDRESS, toBurn);
+                feeToken.safeTransfer(burnReserve, toBurn);
                 feeToken.safeTransfer(insuranceFund, toInsurance);
                 feeToken.safeTransfer(treasury, toTreasury);
 

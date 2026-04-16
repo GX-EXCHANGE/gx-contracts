@@ -1,0 +1,22 @@
+{
+  "contract": "GXBridge",
+  "address": "0x60946c42F0fee653cbF6D4CaA17d126A7A316048",
+  "txHash": "0x5ef068a0a28317148f3e8cdf61d9acce02829e055eeebd36756575ff9fccf8e6",
+  "deployer": "0x7856895b26b3E8Bc6ACc82119fBAC370f41FBa6F",
+  "network": "arbitrumOne",
+  "chainId": "42161",
+  "deployedAt": "2026-04-16T17:32:42.738Z",
+  "arbiscan": "https://arbiscan.io/address/0x60946c42F0fee653cbF6D4CaA17d126A7A316048",
+  "args": {
+    "bridgeId": "0xd66279a447a0769c67ae009d4bada3d1220034cac4e264761aa32e56a86ebce7",
+    "validators": [
+      "0x7856895b26b3E8Bc6ACc82119fBAC370f41FBa6F"
+    ],
+    "supportedTokens": [
+      "USDC",
+      "USDT",
+      "GX"
+    ],
+    "dailyLimit": "$1M"
+  }
+}
