@@ -1,0 +1,14 @@
+{
+  "network": "arbitrumSepolia",
+  "chainId": 421614,
+  "deployer": "0x7856895b26b3E8Bc6ACc82119fBAC370f41FBa6F",
+  "deployedAt": "2026-04-16T22:40:10.924Z",
+  "testUSDC": "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+  "GXAIVault": "0x55edC6b11c35b5F12358Aa3Fa140B185390Acc71",
+  "GXPredictionV3": "0xA24f59524BE32EA63E98a52f3D7C47999C9cdeC5",
+  "notes": {
+    "vault": "Strategy manager = deployer. Deposit USDC, simulate trades, test withdrawals.",
+    "prediction": "Operator = deployer. Create markets, place bets, settle manually (no oracle).",
+    "testing": "Run for 14 days. Test drawdown breaker, withdrawal timelock, market resolution."
+  }
+}
