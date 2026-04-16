@@ -1,0 +1,502 @@
+//SPDX-License-Identifier: Apache-2.0
+pragma solidity 0.8.10;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "./CosmosToken.sol";
+
+error InvalidSignature();
+error InvalidValsetNonce(uint256 newNonce, uint256 currentNonce);
+error InvalidBatchNonce(uint256 newNonce, uint256 currentNonce);
+error InvalidLogicCallNonce(uint256 newNonce, uint256 currentNonce);
+error InvalidLogicCallTransfers();
+error InvalidLogicCallFees();
+error InvalidSendToCosmos();
+error IncorrectCheckpoint();
+error MalformedNewValidatorSet();
+error MalformedCurrentValidatorSet();
+error MalformedBatch();
+error InsufficientPower(uint256 cumulativePower, uint256 powerThreshold);
+error BatchTimedOut();
+error LogicCallTimedOut();
+
+struct LogicCallArgs {
+	uint256[] transferAmounts;
+	address[] transferTokenContracts;
+	uint256[] feeAmounts;
+	address[] feeTokenContracts;
+	address logicContractAddress;
+	bytes payload;
+	uint256 timeOut;
+	bytes32 invalidationId;
+	uint256 invalidationNonce;
+}
+
+struct ValsetArgs {
+	address[] validators;
+	uint256[] powers;
+	uint256 valsetNonce;
+	uint256 rewardAmount;
+	address rewardToken;
+}
+
+struct Signature {
+	uint8 v;
+	bytes32 r;
+	bytes32 s;
+}
+
+contract Gravity is ReentrancyGuard {
+	using SafeERC20 for IERC20;
+
+	uint256 constant constant_powerThreshold = 2863311530;
+
+	bytes32 public state_lastValsetCheckpoint;
+	mapping(address => uint256) public state_lastBatchNonces;
+	mapping(bytes32 => uint256) public state_invalidationMapping;
+	uint256 public state_lastValsetNonce = 0;
+	uint256 public state_lastEventNonce = 1;
+
+	bytes32 public immutable state_gravityId;
+
+	event TransactionBatchExecutedEvent(
+		uint256 indexed _batchNonce,
+		address indexed _token,
+		uint256 _eventNonce
+	);
+	event SendToCosmosEvent(
+		address indexed _tokenContract,
+		address indexed _sender,
+		string _destination,
+		uint256 _amount,
+		uint256 _eventNonce
+	);
+	event ERC20DeployedEvent(
+		string _cosmosDenom,
+		address indexed _tokenContract,
+		string _name,
+		string _symbol,
+		uint8 _decimals,
+		uint256 _eventNonce
+	);
+	event ValsetUpdatedEvent(
+		uint256 indexed _newValsetNonce,
+		uint256 _eventNonce,
+		uint256 _rewardAmount,
+		address _rewardToken,
+		address[] _validators,
+		uint256[] _powers
+	);
+	event LogicCallEvent(
+		bytes32 _invalidationId,
+		uint256 _invalidationNonce,
+		bytes _returnData,
+		uint256 _eventNonce
+	);
+
+	function testMakeCheckpoint(ValsetArgs calldata _valsetArgs, bytes32 _gravityId) external pure {
+		makeCheckpoint(_valsetArgs, _gravityId);
+	}
+
+	function testCheckValidatorSignatures(
+		ValsetArgs calldata _currentValset,
+		Signature[] calldata _sigs,
+		bytes32 _theHash,
+		uint256 _powerThreshold
+	) external pure {
+		checkValidatorSignatures(_currentValset, _sigs, _theHash, _powerThreshold);
+	}
+
+	function lastBatchNonce(address _erc20Address) external view returns (uint256) {
+		return state_lastBatchNonces[_erc20Address];
+	}
+
+	function lastLogicCallNonce(bytes32 _invalidation_id) external view returns (uint256) {
+		return state_invalidationMapping[_invalidation_id];
+	}
+
+	function verifySig(
+		address _signer,
+		bytes32 _theHash,
+		Signature calldata _sig
+	) private pure returns (bool) {
+		bytes32 messageDigest = keccak256(
+			abi.encodePacked("\x19Ethereum Signed Message:\n32", _theHash)
+		);
+		return _signer == ECDSA.recover(messageDigest, _sig.v, _sig.r, _sig.s);
+	}
+
+	function validateValset(ValsetArgs calldata _valset, Signature[] calldata _sigs) private pure {
+		if (
+			_valset.validators.length != _valset.powers.length ||
+			_valset.validators.length != _sigs.length
+		) {
+			revert MalformedCurrentValidatorSet();
+		}
+	}
+
+	function makeCheckpoint(ValsetArgs memory _valsetArgs, bytes32 _gravityId)
+		private
+		pure
+		returns (bytes32)
+	{
+		bytes32 methodName = 0x636865636b706f696e7400000000000000000000000000000000000000000000;
+
+		bytes32 checkpoint = keccak256(
+			abi.encode(
+				_gravityId,
+				methodName,
+				_valsetArgs.valsetNonce,
+				_valsetArgs.validators,
+				_valsetArgs.powers,
+				_valsetArgs.rewardAmount,
+				_valsetArgs.rewardToken
+			)
+		);
+
+		return checkpoint;
+	}
+
+	function checkValidatorSignatures(
+		ValsetArgs calldata _currentValset,
+		Signature[] calldata _sigs,
+		bytes32 _theHash,
+		uint256 _powerThreshold
+	) private pure {
+		uint256 cumulativePower = 0;
+
+		for (uint256 i = 0; i < _currentValset.validators.length; i++) {
+			if (_sigs[i].v != 0) {
+				if (!verifySig(_currentValset.validators[i], _theHash, _sigs[i])) {
+					revert InvalidSignature();
+				}
+
+				cumulativePower = cumulativePower + _currentValset.powers[i];
+
+				if (cumulativePower > _powerThreshold) {
+					break;
+				}
+			}
+		}
+
+		if (cumulativePower <= _powerThreshold) {
+			revert InsufficientPower(cumulativePower, _powerThreshold);
+		}
+	}
+
+	function updateValset(
+		ValsetArgs calldata _newValset,
+		ValsetArgs calldata _currentValset,
+		Signature[] calldata _sigs
+	) external {
+		if (_newValset.valsetNonce <= _currentValset.valsetNonce) {
+			revert InvalidValsetNonce({
+				newNonce: _newValset.valsetNonce,
+				currentNonce: _currentValset.valsetNonce
+			});
+		}
+
+		if (_newValset.valsetNonce > _currentValset.valsetNonce + 1000000) {
+			revert InvalidValsetNonce({
+				newNonce: _newValset.valsetNonce,
+				currentNonce: _currentValset.valsetNonce
+			});
+		}
+
+		if (
+			_newValset.validators.length != _newValset.powers.length ||
+			_newValset.validators.length == 0
+		) {
+			revert MalformedNewValidatorSet();
+		}
+
+		validateValset(_currentValset, _sigs);
+
+		uint256 cumulativePower = 0;
+		for (uint256 i = 0; i < _newValset.powers.length; i++) {
+			cumulativePower = cumulativePower + _newValset.powers[i];
+			if (cumulativePower > constant_powerThreshold) {
+				break;
+			}
+		}
+		if (cumulativePower <= constant_powerThreshold) {
+			revert InsufficientPower({
+				cumulativePower: cumulativePower,
+				powerThreshold: constant_powerThreshold
+			});
+		}
+
+		if (makeCheckpoint(_currentValset, state_gravityId) != state_lastValsetCheckpoint) {
+			revert IncorrectCheckpoint();
+		}
+
+		bytes32 newCheckpoint = makeCheckpoint(_newValset, state_gravityId);
+
+		checkValidatorSignatures(_currentValset, _sigs, newCheckpoint, constant_powerThreshold);
+
+		state_lastValsetCheckpoint = newCheckpoint;
+
+		state_lastValsetNonce = _newValset.valsetNonce;
+
+		if (_newValset.rewardToken != address(0) && _newValset.rewardAmount != 0) {
+			IERC20(_newValset.rewardToken).safeTransfer(msg.sender, _newValset.rewardAmount);
+		}
+
+		state_lastEventNonce = state_lastEventNonce + 1;
+		emit ValsetUpdatedEvent(
+			_newValset.valsetNonce,
+			state_lastEventNonce,
+			_newValset.rewardAmount,
+			_newValset.rewardToken,
+			_newValset.validators,
+			_newValset.powers
+		);
+	}
+
+	function submitBatch(
+		ValsetArgs calldata _currentValset,
+		Signature[] calldata _sigs,
+		uint256[] calldata _amounts,
+		address[] calldata _destinations,
+		uint256[] calldata _fees,
+		uint256 _batchNonce,
+		address _tokenContract,
+		uint256 _batchTimeout
+	) external nonReentrant {
+		{
+			if (_batchNonce <= state_lastBatchNonces[_tokenContract]) {
+				revert InvalidBatchNonce({
+					newNonce: _batchNonce,
+					currentNonce: state_lastBatchNonces[_tokenContract]
+				});
+			}
+
+			if (_batchNonce > state_lastBatchNonces[_tokenContract] + 1000000) {
+				revert InvalidBatchNonce({
+					newNonce: _batchNonce,
+					currentNonce: state_lastBatchNonces[_tokenContract]
+				});
+			}
+
+			if (block.number >= _batchTimeout) {
+				revert BatchTimedOut();
+			}
+
+			validateValset(_currentValset, _sigs);
+
+			if (makeCheckpoint(_currentValset, state_gravityId) != state_lastValsetCheckpoint) {
+				revert IncorrectCheckpoint();
+			}
+
+			if (_amounts.length != _destinations.length || _amounts.length != _fees.length) {
+				revert MalformedBatch();
+			}
+
+			checkValidatorSignatures(
+				_currentValset,
+				_sigs,
+				keccak256(
+					abi.encode(
+						state_gravityId,
+						0x7472616e73616374696f6e426174636800000000000000000000000000000000,
+						_amounts,
+						_destinations,
+						_fees,
+						_batchNonce,
+						_tokenContract,
+						_batchTimeout
+					)
+				),
+				constant_powerThreshold
+			);
+
+			state_lastBatchNonces[_tokenContract] = _batchNonce;
+
+			{
+				uint256 totalFee;
+				for (uint256 i = 0; i < _amounts.length; i++) {
+					IERC20(_tokenContract).safeTransfer(_destinations[i], _amounts[i]);
+					totalFee = totalFee + _fees[i];
+				}
+
+				IERC20(_tokenContract).safeTransfer(msg.sender, totalFee);
+			}
+		}
+
+		{
+			state_lastEventNonce = state_lastEventNonce + 1;
+			emit TransactionBatchExecutedEvent(_batchNonce, _tokenContract, state_lastEventNonce);
+		}
+	}
+
+	function submitLogicCall(
+		ValsetArgs calldata _currentValset,
+		Signature[] calldata _sigs,
+		LogicCallArgs memory _args
+	) external nonReentrant {
+		{
+			if (block.number >= _args.timeOut) {
+				revert LogicCallTimedOut();
+			}
+
+			if (state_invalidationMapping[_args.invalidationId] >= _args.invalidationNonce) {
+				revert InvalidLogicCallNonce({
+					newNonce: _args.invalidationNonce,
+					currentNonce: state_invalidationMapping[_args.invalidationId]
+				});
+			}
+
+			validateValset(_currentValset, _sigs);
+
+			if (makeCheckpoint(_currentValset, state_gravityId) != state_lastValsetCheckpoint) {
+				revert IncorrectCheckpoint();
+			}
+
+			if (_args.transferAmounts.length != _args.transferTokenContracts.length) {
+				revert InvalidLogicCallTransfers();
+			}
+
+			if (_args.feeAmounts.length != _args.feeTokenContracts.length) {
+				revert InvalidLogicCallFees();
+			}
+		}
+		{
+			bytes32 argsHash = keccak256(
+				abi.encode(
+					state_gravityId,
+					0x6c6f67696343616c6c0000000000000000000000000000000000000000000000,
+					_args.transferAmounts,
+					_args.transferTokenContracts,
+					_args.feeAmounts,
+					_args.feeTokenContracts,
+					_args.logicContractAddress,
+					_args.payload,
+					_args.timeOut,
+					_args.invalidationId,
+					_args.invalidationNonce
+				)
+			);
+
+			checkValidatorSignatures(
+				_currentValset,
+				_sigs,
+				argsHash,
+				constant_powerThreshold
+			);
+		}
+
+		state_invalidationMapping[_args.invalidationId] = _args.invalidationNonce;
+
+		for (uint256 i = 0; i < _args.transferAmounts.length; i++) {
+			IERC20(_args.transferTokenContracts[i]).safeTransfer(
+				_args.logicContractAddress,
+				_args.transferAmounts[i]
+			);
+		}
+
+		bytes memory returnData = Address.functionCall(_args.logicContractAddress, _args.payload);
+
+		for (uint256 i = 0; i < _args.feeAmounts.length; i++) {
+			IERC20(_args.feeTokenContracts[i]).safeTransfer(msg.sender, _args.feeAmounts[i]);
+		}
+
+		{
+			state_lastEventNonce = state_lastEventNonce + 1;
+			emit LogicCallEvent(
+				_args.invalidationId,
+				_args.invalidationNonce,
+				returnData,
+				state_lastEventNonce
+			);
+		}
+	}
+
+	function sendToCosmos(
+		address _tokenContract,
+		string calldata _destination,
+		uint256 _amount
+	) external nonReentrant {
+		uint256 ourStartingBalance = IERC20(_tokenContract).balanceOf(address(this));
+
+		IERC20(_tokenContract).safeTransferFrom(msg.sender, address(this), _amount);
+
+		uint256 ourEndingBalance = IERC20(_tokenContract).balanceOf(address(this));
+
+		if (ourEndingBalance <= ourStartingBalance) {
+			revert InvalidSendToCosmos();
+		}
+
+		state_lastEventNonce = state_lastEventNonce + 1;
+
+		emit SendToCosmosEvent(
+			_tokenContract,
+			msg.sender,
+			_destination,
+			ourEndingBalance - ourStartingBalance,
+			state_lastEventNonce
+		);
+	}
+
+	function deployERC20(
+		string calldata _cosmosDenom,
+		string calldata _name,
+		string calldata _symbol,
+		uint8 _decimals
+	) external {
+		CosmosERC20 erc20 = new CosmosERC20(address(this), _name, _symbol, _decimals);
+
+		state_lastEventNonce = state_lastEventNonce + 1;
+		emit ERC20DeployedEvent(
+			_cosmosDenom,
+			address(erc20),
+			_name,
+			_symbol,
+			_decimals,
+			state_lastEventNonce
+		);
+	}
+
+	constructor(
+		bytes32 _gravityId,
+		address[] memory _validators,
+		uint256[] memory _powers
+	) {
+		if (_validators.length != _powers.length || _validators.length == 0) {
+			revert MalformedCurrentValidatorSet();
+		}
+
+		uint256 cumulativePower = 0;
+		for (uint256 i = 0; i < _powers.length; i++) {
+			cumulativePower = cumulativePower + _powers[i];
+			if (cumulativePower > constant_powerThreshold) {
+				break;
+			}
+		}
+		if (cumulativePower <= constant_powerThreshold) {
+			revert InsufficientPower({
+				cumulativePower: cumulativePower,
+				powerThreshold: constant_powerThreshold
+			});
+		}
+
+		ValsetArgs memory _valset;
+		_valset = ValsetArgs(_validators, _powers, 0, 0, address(0));
+
+		bytes32 newCheckpoint = makeCheckpoint(_valset, _gravityId);
+
+		state_gravityId = _gravityId;
+		state_lastValsetCheckpoint = newCheckpoint;
+
+		emit ValsetUpdatedEvent(
+			state_lastValsetNonce,
+			state_lastEventNonce,
+			0,
+			address(0),
+			_validators,
+			_powers
+		);
+	}
+}

@@ -1,0 +1,46 @@
+{
+  "contract": "GXNodeSubscription",
+  "address": "0x228B7204D7671F019046A77349466805928Abf0D",
+  "txHash": "0x6f773def28bb54d6e2743128669ba655cd554c4c6a2af7c5c2265257d220daeb",
+  "deployer": "0x7856895b26b3E8Bc6ACc82119fBAC370f41FBa6F",
+  "usdc": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+  "usdt": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+  "treasury": "0x678E4d4906883A6694fdFE35ebd8211A508ffD68",
+  "plans": [
+    {
+      "id": 0,
+      "name": "Starter",
+      "monthly": "$99",
+      "yearly": "$1,069"
+    },
+    {
+      "id": 1,
+      "name": "Basic",
+      "monthly": "$199",
+      "yearly": "$2,149"
+    },
+    {
+      "id": 2,
+      "name": "Pro",
+      "monthly": "$299",
+      "yearly": "$3,229"
+    },
+    {
+      "id": 3,
+      "name": "Business",
+      "monthly": "$599",
+      "yearly": "$6,469"
+    },
+    {
+      "id": 4,
+      "name": "Enterprise",
+      "monthly": "$999",
+      "yearly": "$10,789"
+    }
+  ],
+  "network": "arbitrumOne",
+  "chainId": "42161",
+  "deployedAt": "2026-04-15T08:38:14.833Z",
+  "arbiscanAddress": "https://arbiscan.io/address/0x228B7204D7671F019046A77349466805928Abf0D",
+  "arbiscanTx": "https://arbiscan.io/tx/0x6f773def28bb54d6e2743128669ba655cd554c4c6a2af7c5c2265257d220daeb"
+}
